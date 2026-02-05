@@ -30,6 +30,10 @@ public class Main {
             String p = ctx.path();
 
             if (p.equals("/login.html") || p.equals("/procesarLogin")) return;
+            if (p.endsWith(".css") || p.endsWith(".js") || p.endsWith(".png") || p.endsWith(".jpg")
+                    || p.endsWith(".jpeg") || p.endsWith(".gif") || p.endsWith(".svg") || p.endsWith(".ico")) {
+                return;
+            }
 
             Usuario u = ctx.sessionAttribute(KeySession.USUARIO.name());
             if (u == null) {
@@ -37,7 +41,10 @@ public class Main {
             }
         });
 
-        app.get("/", ctx -> ctx.result("Hola Mundo desde Javalin :-D!!"));
+        app.get("/", ctx -> {
+            Usuario u = ctx.sessionAttribute(KeySession.USUARIO.name());
+            ctx.redirect("/index.html?user=" + u.usuario());
+        });
 
         app.get("/logout", ctx -> {
             ctx.req().getSession().invalidate();

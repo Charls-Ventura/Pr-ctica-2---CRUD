@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Inicio</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="box">
+    <h2>Inicio</h2>
+
+    <p id="welcome"></p>
+
+    <form action="/logout" method="get">
+        <button type="submit" class="logout-btn">Cerrar sesión</button>
+    </form>
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const user = params.get("user") || "usuario";
+    document.getElementById("welcome").textContent =
+        "Bienvenido, " + user + ". Inicio de sesión exitoso.";
+</script>
+
+</body>
+</html>

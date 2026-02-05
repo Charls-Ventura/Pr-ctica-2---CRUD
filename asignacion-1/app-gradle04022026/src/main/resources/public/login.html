@@ -3,62 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f2f2f2;
-        }
-
-        .login-box {
-            width: 320px;
-            margin: 120px auto;
-            padding: 25px;
-            background: #ffffff;
-            border-radius: 6px;
-        }
-
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        input {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 15px;
-            box-sizing: border-box;
-        }
-
-        button {
-            width: 100%;
-            padding: 10px;
-            background-color: #0d6efd;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #0b5ed7;
-        }
-    </style>
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
-<div class="login-box">
+<div class="box">
     <h2>Formulario de Acceso</h2>
+
+    <div id="msg-error" class="error hidden"></div>
+
     <form action="/procesarLogin" method="post">
-        Usuario: <input type="text" name="usuario" required/><br>
-        Password: <input type="password" name="password" required/><br/>
+        <label>Usuario</label>
+        <input type="text" name="usuario" required>
+
+        <label>Password</label>
+        <input type="password" name="password" required>
+
         <button type="submit">Entrar</button>
     </form>
 </div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('error')) {
+        const errorDiv = document.getElementById('msg-error');
+        errorDiv.textContent = "Usuario o contraseña incorrectos.";
+        errorDiv.classList.remove('hidden');
+    }
+</script>
 
 </body>
 </html>
