@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+    <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<div class="card">
+    <h1>Iniciar sesión</h1>
+
+    <p class="hint">Usuario: <b>admin</b> | Contraseña: <b>1234</b></p>
+
+    <div id="errorBox" class="error hidden">
+        Usuario o contraseña incorrectos.
+    </div>
+
+    <form method="post" action="/login">
+        <label>Usuario</label>
+        <input name="user" type="text" placeholder="admin" required />
+
+        <label>Contraseña</label>
+        <input name="pass" type="password" placeholder="1234" required />
+
+        <button type="submit">Entrar</button>
+    </form>
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("error") === "1") {
+        document.getElementById("errorBox").classList.remove("hidden");
+    }
+</script>
+</body>
+</html>
