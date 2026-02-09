@@ -9,10 +9,11 @@ repositories {
 
 application {
     // Importante: mainClass para gradle run
-    mainClass = ("org.example.Main")
+    mainClass = "org.example.Main"
 }
 
 dependencies {
+    implementation "org.jsoup:jsoup:1.18.3"
     implementation("io.javalin:javalin:6.7.0")
     implementation("org.slf4j:slf4j-simple:2.0.17")
     testImplementation platform('org.junit:junit-bom:5.10.0')
@@ -21,4 +22,10 @@ dependencies {
 
 test {
     useJUnitPlatform()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
