@@ -21,7 +21,8 @@ public class Main {
     * https://www.w3schools.com/html/html_forms.asp
     * Puede utilizar otras para verificar el funcionamiento
     * Al correr el MAIN, le pedira el URL
-    * */
+    * En caso de usar la terminal del dispositivo, use: .\gradlew run --args="https://www.w3schools.com/html/html_forms.asp"
+     * */
 
     private static final String MATRICULA = "10153529";
 
@@ -30,7 +31,15 @@ public class Main {
         Scanner sc = new Scanner(System.in);
 
         System.out.println("Pegue una URL valida: ");
-        urlStr = sc.nextLine();
+
+        if (sc.hasNextLine()) {
+            urlStr = sc.nextLine().trim();
+        }
+
+        if ((urlStr == null || urlStr.isBlank()) && args.length > 0) {
+            urlStr = args[0].trim();
+            System.out.println("[INFO] URL tomada desde argumento de ejecucion.");
+        }
 
         if (urlStr == null || urlStr.isBlank()) {
             System.out.println("[ERROR] No se recibio ninguna URL.");
