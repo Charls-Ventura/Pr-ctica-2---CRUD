@@ -18,17 +18,16 @@ public class Main {
             try {
                 port = Integer.parseInt(args[0]);
             } catch (Exception e) {
-                System.out.println("[WARN] Puerto inválido, usando 7000.");
+                System.out.println("[WARN] Puerto invalido, usando 7000.");
             }
         }
 
         System.out.println("[INFO] Iniciando Javalin en puerto: " + port);
 
-        // Javalin.create(...) y staticFiles.add(...) son de la doc
         Javalin app = Javalin.create(config -> {
             config.staticFiles.add(staticFiles -> {
-                staticFiles.hostedPath = "/";      // se sirven desde /
-                staticFiles.directory = "/public"; // src/main/resources/public
+                staticFiles.hostedPath = "/";
+                staticFiles.directory = "/public";
                 staticFiles.location = Location.CLASSPATH;
             });
         });
@@ -62,12 +61,10 @@ public class Main {
             String pass = ctx.formParam("pass");
 
             System.out.println("[LOGIN] user=" + user + " pass=" + (pass == null ? "null" : "***"));
-
-            // Credenciales demo
             boolean ok = "admin".equals(user) && "1234".equals(pass);
 
             if (!ok) {
-                System.out.println("[LOGIN] Falló autenticación");
+                System.out.println("[LOGIN] Fallo de autenticacion");
                 ctx.redirect("/login.html?error=1");
                 return;
             }
@@ -99,13 +96,8 @@ public class Main {
         });
 
         app.get("/ping", ctx -> {
-            String name = ctx.queryParam("name");
-            if (name == null) {
-                name = "mundo";
-            }
-
-            System.out.println("[ROUTE] GET /ping?name=" + name);
-            ctx.result("pong, " + name);
+            System.out.println("[ROUTE] GET /ping");
+            ctx.result("Prueba correcta. Endpoint /ping funcionando correctamente.");
         });
 
         app.start(port);
