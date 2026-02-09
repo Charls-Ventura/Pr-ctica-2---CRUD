@@ -19,9 +19,11 @@ public class Main {
 
     /*URL utilizada al correr el programa:
     * https://www.w3schools.com/html/html_forms.asp
+    * https://httpbin.org/forms/post
     * Puede utilizar otras para verificar el funcionamiento
     * Al correr el MAIN, le pedira el URL
     * En caso de usar la terminal del dispositivo, use: .\gradlew run --args="https://www.w3schools.com/html/html_forms.asp"
+    * o ".\gradlew run --args="https://httpbin.org/forms/post"
      * */
 
     private static final String MATRICULA = "10153529";
