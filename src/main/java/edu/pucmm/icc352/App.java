@@ -1,9 +1,13 @@
 package edu.pucmm.icc352;
 
+import edu.pucmm.icc352.controllers.AdminController;
 import edu.pucmm.icc352.models.ItemCarrito;
 import edu.pucmm.icc352.models.Producto;
 import edu.pucmm.icc352.models.Usuario;
 import edu.pucmm.icc352.services.SistemaService;
+import edu.pucmm.icc352.util.H2Server;
+import edu.pucmm.icc352.util.RememberMeUtil;
+import edu.pucmm.icc352.util.SessionKeys;
 import io.javalin.Javalin;
 import io.javalin.rendering.template.JavalinThymeleaf;
 
@@ -11,16 +15,43 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import edu.pucmm.icc352.controllers.AdminController;
 
 public class App {
 
+    private static final int REMEMBER_SECONDS = 7 * 24 * 60 * 60;
+
     public static void main(String[] args) {
+
+        // levantar H2 (TCP 9092 + WEB 8082) antes de Hibernate/login
+        H2Server.start();
 
         JavalinThymeleaf.init();
         Javalin app = Javalin.create().start(7000);
 
         SistemaService sistema = new SistemaService();
+
+        //  Requisito 4: auto-login por cookie si no hay sesión
+        app.before(ctx -> {
+            Usuario user = ctx.sessionAttribute(SessionKeys.USER);
+            if (user != null) return;
+
+            String token = ctx.cookie(SessionKeys.REMEMBER_COOKIE);
+            if (token == null) return;
+
+            RememberMeUtil.Decoded decoded = RememberMeUtil.decodeToken(token);
+            if (decoded == null) {
+                ctx.cookie(SessionKeys.REMEMBER_COOKIE, "", 0);
+                return;
+            }
+
+            if (decoded.expiresAtMillis < System.currentTimeMillis()) {
+                ctx.cookie(SessionKeys.REMEMBER_COOKIE, "", 0);
+                return;
+            }
+
+            sistema.auth.findByUsername(decoded.username)
+                    .ifPresent(u -> ctx.sessionAttribute(SessionKeys.USER, u));
+        });
 
         app.get("/login", ctx -> {
             Map<String, Object> model = baseModel(ctx, sistema);
@@ -34,12 +65,20 @@ public class App {
 
             var opt = sistema.auth.login(username, password);
             if (opt.isPresent()) {
-                ctx.sessionAttribute("user", opt.get()); // guardamos usuario en sesión
+                ctx.sessionAttribute(SessionKeys.USER, opt.get());
+
+                //  Si marcó "recordarme"
+                String remember = ctx.formParam("remember"); // "on" si se marcó
+                if ("on".equals(remember)) {
+                    long exp = System.currentTimeMillis() + (REMEMBER_SECONDS * 1000L);
+                    String token = RememberMeUtil.buildToken(opt.get().getUsername(), exp);
+                    ctx.cookie(SessionKeys.REMEMBER_COOKIE, token, REMEMBER_SECONDS);
+                }
+
                 ctx.redirect("/admin");
                 return;
             }
 
-            // si falla
             Map<String, Object> model = baseModel(ctx, sistema);
             model.put("error", "Credenciales invalidas");
             ctx.render("templates/login.html", model);
@@ -48,6 +87,7 @@ public class App {
         // LOGOUT
         app.get("/logout", ctx -> {
             ctx.req().getSession().invalidate();
+            ctx.cookie(SessionKeys.REMEMBER_COOKIE, "", 0); // borra cookie
             ctx.redirect("/");
         });
 
@@ -68,13 +108,12 @@ public class App {
             ctx.render("templates/index.html", model);
         });
 
-
         // AGREGAR AL CARRITO
         app.post("/cart/add", ctx -> {
             int productoId = Integer.parseInt(ctx.formParam("productoId"));
             int cantidad = Integer.parseInt(ctx.formParam("cantidad"));
 
-            List<ItemCarrito> cart = ctx.sessionAttribute("cart");
+            List<ItemCarrito> cart = ctx.sessionAttribute(SessionKeys.CART);
             if (cart == null) cart = new ArrayList<>();
 
             Producto p = sistema.productos.buscarPorId(productoId).orElse(null);
@@ -82,7 +121,7 @@ public class App {
                 sistema.carrito.agregar(cart, p, cantidad);
             }
 
-            ctx.sessionAttribute("cart", cart);
+            ctx.sessionAttribute(SessionKeys.CART, cart);
             ctx.redirect("/");
         });
 
@@ -90,7 +129,7 @@ public class App {
         app.get("/cart", ctx -> {
             Map<String, Object> model = baseModel(ctx, sistema);
 
-            List<ItemCarrito> cart = ctx.sessionAttribute("cart");
+            List<ItemCarrito> cart = ctx.sessionAttribute(SessionKeys.CART);
             if (cart == null) cart = new ArrayList<>();
 
             model.put("cart", cart);
@@ -99,17 +138,17 @@ public class App {
             ctx.render("templates/cart.html", model);
         });
 
-        // RESTAR CANTIDAD (NUEVO)
+        // RESTAR CANTIDAD
         app.post("/cart/decrease", ctx -> {
             int productoId = Integer.parseInt(ctx.formParam("productoId"));
             int cantidad = Integer.parseInt(ctx.formParam("cantidad"));
 
-            List<ItemCarrito> cart = ctx.sessionAttribute("cart");
+            List<ItemCarrito> cart = ctx.sessionAttribute(SessionKeys.CART);
             if (cart == null) cart = new ArrayList<>();
 
             sistema.carrito.restarCantidad(cart, productoId, cantidad);
 
-            ctx.sessionAttribute("cart", cart);
+            ctx.sessionAttribute(SessionKeys.CART, cart);
             ctx.redirect("/cart");
         });
 
@@ -117,12 +156,12 @@ public class App {
         app.post("/cart/remove", ctx -> {
             int productoId = Integer.parseInt(ctx.formParam("productoId"));
 
-            List<ItemCarrito> cart = ctx.sessionAttribute("cart");
+            List<ItemCarrito> cart = ctx.sessionAttribute(SessionKeys.CART);
             if (cart == null) cart = new ArrayList<>();
 
             sistema.carrito.quitar(cart, productoId);
 
-            ctx.sessionAttribute("cart", cart);
+            ctx.sessionAttribute(SessionKeys.CART, cart);
             ctx.redirect("/cart");
         });
 
@@ -130,13 +169,13 @@ public class App {
         app.post("/cart/checkout", ctx -> {
             String nombreCliente = ctx.formParam("nombreCliente");
 
-            List<ItemCarrito> cart = ctx.sessionAttribute("cart");
+            List<ItemCarrito> cart = ctx.sessionAttribute(SessionKeys.CART);
             if (cart == null) cart = new ArrayList<>();
 
             if (!cart.isEmpty() && nombreCliente != null && !nombreCliente.trim().isEmpty()) {
                 sistema.compras.procesarCompra(nombreCliente, cart);
                 sistema.carrito.limpiar(cart);
-                ctx.sessionAttribute("cart", cart);
+                ctx.sessionAttribute(SessionKeys.CART, cart);
                 ctx.sessionAttribute("success", "Su compra se realizó correctamente.");
             }
 
@@ -144,16 +183,13 @@ public class App {
         });
     }
 
-    private static Map<String, Object> baseModel(
-            io.javalin.http.Context ctx,
-            SistemaService sistema) {
-
+    private static Map<String, Object> baseModel(io.javalin.http.Context ctx, SistemaService sistema) {
         Map<String, Object> model = new HashMap<>();
 
-        List<ItemCarrito> cart = ctx.sessionAttribute("cart");
+        List<ItemCarrito> cart = ctx.sessionAttribute(SessionKeys.CART);
         if (cart == null) cart = new ArrayList<>();
 
-        Usuario user = ctx.sessionAttribute("user");
+        Usuario user = ctx.sessionAttribute(SessionKeys.USER);
 
         model.put("cartCount", sistema.carrito.contadorItems(cart));
         model.put("user", user);
@@ -161,5 +197,4 @@ public class App {
 
         return model;
     }
-
 }
